@@ -1,0 +1,1421 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>محطة الإشارات — ترند / دعم-مقاومة / شموع</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Tajawal:wght@400;500;700;900&display=swap');
+
+:root{
+  --bg:#0A0C0F;
+  --panel:#12151A;
+  --panel-2:#171B21;
+  --border:#242A32;
+  --text:#E7EAEE;
+  --text-dim:#8891A0;
+  --bull:#2BB673;
+  --bull-dim:#173226;
+  --bear:#E5484D;
+  --bear-dim:#341A1C;
+  --amber:#E8AA3C;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Tajawal', sans-serif;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{
+  background:
+    radial-gradient(ellipse 900px 500px at 15% -10%, rgba(232,170,60,0.05), transparent),
+    radial-gradient(ellipse 700px 500px at 100% 10%, rgba(43,182,115,0.05), transparent),
+    var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  min-height:100vh;
+  padding:18px;
+}
+.wrap{max-width:1180px; margin:0 auto;}
+
+/* ---------- Header ---------- */
+header{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 20px; border:1px solid var(--border); border-radius:10px;
+  background:var(--panel); margin-bottom:14px; flex-wrap:wrap; gap:10px;
+}
+.brand{display:flex; align-items:center; gap:12px;}
+.brand .dot{width:10px; height:10px; border-radius:50%; background:var(--bull); box-shadow:0 0 10px var(--bull); animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1} 50%{opacity:.35}}
+.brand h1{font-size:16px; font-weight:900; letter-spacing:.2px;}
+.brand span{font-family:var(--mono); font-size:11px; color:var(--text-dim); letter-spacing:1px;}
+.status{font-family:var(--mono); font-size:11px; color:var(--text-dim); text-align:left;}
+.status b{color:var(--amber);}
+
+/* ---------- Controls ---------- */
+.controls{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:10px; margin-bottom:14px;
+}
+.field{
+  background:var(--panel); border:1px solid var(--border); border-radius:10px;
+  padding:10px 12px;
+}
+.field label{display:block; font-size:11px; color:var(--text-dim); margin-bottom:6px; font-weight:700;}
+select, input[type=text], textarea{
+  width:100%; background:var(--panel-2); color:var(--text); border:1px solid var(--border);
+  border-radius:7px; padding:8px 10px; font-family:var(--mono); font-size:13px;
+}
+.mode-tabs{display:flex; gap:6px; flex-wrap:wrap;}
+.mode-tabs button{
+  flex:1; min-width:110px; background:var(--panel-2); color:var(--text-dim); border:1px solid var(--border);
+  border-radius:7px; padding:8px 6px; font-family:var(--sans); font-weight:700; font-size:12px; cursor:pointer;
+  transition:.15s;
+}
+.mode-tabs button.active{background:var(--amber); color:#1a1300; border-color:var(--amber);}
+
+.btn-row{display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap;}
+.btn{
+  font-family:var(--sans); font-weight:700; font-size:13px; padding:11px 20px;
+  border-radius:9px; border:1px solid var(--border); cursor:pointer; transition:.15s;
+  background:var(--panel-2); color:var(--text);
+}
+.btn:hover{border-color:var(--amber);}
+.btn.primary{background:var(--amber); color:#1a1300; border-color:var(--amber);}
+.btn.primary:hover{filter:brightness(1.08);}
+.btn.toggle-on{background:var(--bull-dim); color:var(--bull); border-color:var(--bull);}
+.btn:disabled{opacity:.5; cursor:not-allowed;}
+
+textarea{min-height:90px; font-size:12px; resize:vertical; display:none;}
+textarea.show{display:block;}
+
+/* ---------- Main grid ---------- */
+.grid{display:grid; grid-template-columns:1.6fr 1fr; gap:14px;}
+@media (max-width:860px){.grid{grid-template-columns:1fr;}}
+
+.card{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px;}
+.card h2{font-size:13px; font-weight:700; color:var(--text-dim); margin-bottom:12px; letter-spacing:.3px;}
+
+canvas#chart{width:100%; height:340px; display:block; border-radius:8px;}
+.legend{display:flex; gap:16px; margin-top:10px; font-family:var(--mono); font-size:11px; color:var(--text-dim);}
+.legend span{display:flex; align-items:center; gap:6px;}
+.legend i{width:14px; height:2px; display:inline-block;}
+
+/* ---------- Signal panel ---------- */
+.signal-card{display:flex; flex-direction:column; align-items:center; text-align:center;}
+.gauge-wrap{position:relative; width:220px; height:130px;}
+canvas#gauge{width:220px; height:130px;}
+.gauge-label{position:absolute; bottom:6px; left:0; right:0; text-align:center;}
+.gauge-label .pct{font-family:var(--mono); font-size:30px; font-weight:700;}
+.gauge-label .lbl{font-size:11px; color:var(--text-dim);}
+
+.direction-tag{
+  margin-top:6px; padding:7px 18px; border-radius:20px; font-weight:900; font-size:15px;
+  letter-spacing:.5px; font-family:var(--mono);
+}
+.direction-tag.buy{background:var(--bull-dim); color:var(--bull); border:1px solid var(--bull);}
+.direction-tag.sell{background:var(--bear-dim); color:var(--bear); border:1px solid var(--bear);}
+.direction-tag.none{background:var(--panel-2); color:var(--text-dim); border:1px solid var(--border);}
+
+.reasons{width:100%; margin-top:16px; text-align:right;}
+.reasons .r{
+  display:flex; gap:8px; align-items:flex-start; padding:8px 0; border-top:1px solid var(--border);
+  font-size:12.5px; color:var(--text);
+}
+.reasons .r:first-child{border-top:none;}
+.reasons .r .ic{color:var(--amber); font-family:var(--mono); font-size:11px; margin-top:1px;}
+
+.levels{display:flex; justify-content:space-between; width:100%; margin-top:14px; font-family:var(--mono); font-size:12px;}
+.levels div{background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; flex:1; margin:0 4px; text-align:center;}
+.levels .lab{color:var(--text-dim); font-size:10px; display:block; margin-bottom:3px;}
+.levels .sup .val{color:var(--bull);}
+.levels .res .val{color:var(--bear);}
+
+/* ---------- Log ---------- */
+.log{margin-top:14px; max-height:170px; overflow-y:auto;}
+.log-row{
+  display:flex; justify-content:space-between; font-family:var(--mono); font-size:11.5px;
+  padding:7px 4px; border-bottom:1px solid var(--border); color:var(--text-dim);
+}
+.log-row .d.buy{color:var(--bull); font-weight:700;}
+.log-row .d.sell{color:var(--bear); font-weight:700;}
+
+.scan-row{
+  display:flex; justify-content:space-between; align-items:center; padding:10px 12px;
+  background:var(--panel-2); border:1px solid var(--border); border-radius:8px; margin-bottom:8px;
+}
+.scan-row .sym{font-weight:700; font-size:13px;}
+.scan-row .info{font-family:var(--mono); font-size:11.5px; color:var(--text-dim); margin-top:2px;}
+.scan-row .badge{padding:5px 12px; border-radius:16px; font-weight:900; font-family:var(--mono); font-size:13px;}
+.scan-row .badge.buy{background:var(--bull-dim); color:var(--bull);}
+.scan-row .badge.sell{background:var(--bear-dim); color:var(--bear);}
+
+.hint{font-size:11.5px; color:var(--text-dim); line-height:1.9; margin-top:10px;}
+.hint b{color:var(--amber);}
+footer{margin-top:16px; text-align:center; font-size:11px; color:var(--text-dim); line-height:1.8;}
+::-webkit-scrollbar{width:6px;} ::-webkit-scrollbar-thumb{background:var(--border); border-radius:3px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="dot"></div>
+      <div>
+        <h1>محطة الإشارات</h1>
+        <span>TREND · SUPPORT/RESISTANCE · CANDLESTICK ENGINE</span>
+      </div>
+    </div>
+    <div class="status" id="statusLine">جاهز — اختر مصدر البيانات وابدأ التحليل</div>
+  </header>
+
+  <div class="controls">
+    <div class="field">
+      <label>مصدر البيانات</label>
+      <div class="mode-tabs">
+        <button id="tabDeriv" class="active" onclick="setMode('deriv')">فوركس Deriv (مجاني)</button>
+        <button id="tabLive" onclick="setMode('live')">كريبتو Binance</button>
+        <button id="tabForex" onclick="setMode('forex')">فوركس Finnhub</button>
+        <button id="tabDemo" onclick="setMode('demo')">تجريبي</button>
+        <button id="tabPaste" onclick="setMode('paste')">الصق بياناتي</button>
+      </div>
+    </div>
+    <div class="field" id="derivSymbolField">
+      <label>الرمز (Deriv)</label>
+      <select id="derivSymbolSelect">
+        <optgroup label="فوركس">
+          <option value="frxEURUSD">EUR/USD</option>
+          <option value="frxGBPUSD">GBP/USD</option>
+          <option value="frxUSDJPY">USD/JPY</option>
+          <option value="frxAUDUSD">AUD/USD</option>
+          <option value="frxUSDCAD">USD/CAD</option>
+          <option value="frxUSDCHF">USD/CHF</option>
+          <option value="frxNZDUSD">NZD/USD</option>
+          <option value="frxEURGBP">EUR/GBP</option>
+          <option value="frxEURJPY">EUR/JPY</option>
+          <option value="frxGBPJPY">GBP/JPY</option>
+          <option value="frxXAUUSD">XAU/USD (ذهب)</option>
+        </optgroup>
+        <optgroup label="OTC / تركيبية (تشتغل 24/7 حتى بعطلة الأسبوع - زي بوكت أوبشن)">
+          <option value="R_10">Volatility 10</option>
+          <option value="R_25">Volatility 25</option>
+          <option value="R_50">Volatility 50</option>
+          <option value="R_75">Volatility 75</option>
+          <option value="R_100">Volatility 100</option>
+          <option value="1HZ10V">Volatility 10 (1s)</option>
+          <option value="1HZ25V">Volatility 25 (1s)</option>
+          <option value="1HZ50V">Volatility 50 (1s)</option>
+          <option value="1HZ100V">Volatility 100 (1s)</option>
+          <option value="BOOM500">Boom 500</option>
+          <option value="BOOM1000">Boom 1000</option>
+          <option value="CRASH500">Crash 500</option>
+          <option value="CRASH1000">Crash 1000</option>
+        </optgroup>
+      </select>
+    </div>
+    <div class="field" id="symbolField" style="display:none">
+      <label>الرمز</label>
+      <select id="symbolSelect">
+        <option value="BTCUSDT">BTC/USDT</option>
+        <option value="ETHUSDT">ETH/USDT</option>
+        <option value="BNBUSDT">BNB/USDT</option>
+        <option value="SOLUSDT">SOL/USDT</option>
+        <option value="XRPUSDT">XRP/USDT</option>
+        <option value="DOGEUSDT">DOGE/USDT</option>
+        <option value="EURUSDT">EUR/USDT (فوركس تركيبي)</option>
+      </select>
+    </div>
+    <div class="field" id="forexSymbolField" style="display:none">
+      <label>زوج الفوركس</label>
+      <select id="forexSymbolSelect">
+        <option value="OANDA:EUR_USD">EUR/USD</option>
+        <option value="OANDA:GBP_USD">GBP/USD</option>
+        <option value="OANDA:USD_JPY">USD/JPY</option>
+        <option value="OANDA:AUD_USD">AUD/USD</option>
+        <option value="OANDA:USD_CAD">USD/CAD</option>
+        <option value="OANDA:USD_CHF">USD/CHF</option>
+        <option value="OANDA:NZD_USD">NZD/USD</option>
+        <option value="OANDA:EUR_GBP">EUR/GBP</option>
+        <option value="OANDA:EUR_JPY">EUR/JPY</option>
+        <option value="OANDA:GBP_JPY">GBP/JPY</option>
+        <option value="OANDA:XAU_USD">XAU/USD (ذهب)</option>
+      </select>
+    </div>
+    <div class="field" id="forexKeyField" style="display:none">
+      <label>مفتاح Finnhub المجاني</label>
+      <input type="text" id="finnhubKey" placeholder="الصق مفتاحك هنا">
+    </div>
+    <div class="field">
+      <label>الفريم الزمني</label>
+      <select id="intervalSelect">
+        <option value="1m">1 دقيقة</option>
+        <option value="5m" selected>5 دقائق</option>
+        <option value="15m">15 دقيقة</option>
+        <option value="30m">30 دقيقة</option>
+        <option value="1h">1 ساعة</option>
+        <option value="4h">4 ساعات</option>
+        <option value="1d">يومي</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>قوة الإشارة المطلوبة</label>
+      <select id="strengthSelect">
+        <option value="65">عادية (65%+)</option>
+        <option value="80" selected>قوية (80%+)</option>
+        <option value="90">قوية جداً (90%+)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="hint" id="forexKeyHint" style="display:none">
+    مطلوب مفتاح مجاني من Finnhub لبيانات الفوركس المباشرة الحقيقية (تسجيل بالبريد فقط، بدون بطاقة، دقيقتين):
+    <a href="https://finnhub.io/register" target="_blank" style="color:var(--amber)">finnhub.io/register</a>
+    — انسخ المفتاح من لوحة التحكم والصقه فوق. ملاحظة: فريم 4 ساعات غير مدعوم في وضع الفوركس، استخدم غيره.
+    المفتاح لا يُحفظ بين الجلسات (لأسباب أمنية) — تحتاج تلصقه كل مرة تفتح فيها الصفحة.
+  </div>
+
+  <textarea id="pasteBox" placeholder="الصق بياناتك بصيغة CSV بدون عناوين أعمدة، كل سطر شمعة:&#10;time,open,high,low,close&#10;مثال:&#10;2026-07-10 09:00,1.1020,1.1035,1.1010,1.1028&#10;2026-07-10 09:05,1.1028,1.1040,1.1022,1.1037&#10;...(يفضل 60 شمعة أو أكثر لدقة أعلى)"></textarea>
+
+  <div class="field" id="candleCountdownBox" style="margin-bottom:10px; text-align:center;">
+    <label style="display:block">⏱ الشمعة الحالية تقفل خلال</label>
+    <div id="candleCountdown" style="font-family:var(--mono); font-size:22px; font-weight:700; color:var(--amber)">--:--</div>
+    <div style="font-size:10.5px; color:var(--text-dim); margin-top:2px">أفضل وقت تضغط "حلّل الآن" هو لحظة ما يوصل الصفر — عشان تحلل على شمعة طازة لسا مقفلة</div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn primary" id="analyzeBtn" onclick="analyzeNow()">🔍 حلّل الآن</button>
+    <button class="btn" id="autoBtn" onclick="toggleAuto()">⏱ تحديث تلقائي: متوقف</button>
+  </div>
+
+  <div class="card" id="scannerCard" style="margin-bottom:14px">
+    <h2>🔎 مسح جميع أزواج ديريف (فوركس + OTC)</h2>
+    <div class="hint" style="margin-top:0; margin-bottom:10px">
+      يفحص كل الأزواج تلقائياً بنفس الفريم الزمني وحد الثقة المختارين، ويعرض لك <b>أقوى 3 فرص فقط</b> —
+      عشان ما تتشتت بين عدة صفقات مرة وحدة. متاح بس بوضع "فوركس Deriv".
+    </div>
+    <div class="btn-row" style="margin-bottom:0">
+      <button class="btn primary" id="scanBtn" onclick="scanAllPairs()" style="flex:1">🔎 امسح كل الأزواج الآن</button>
+    </div>
+    <div id="scanStatus" class="hint" style="display:none"></div>
+    <div id="scanResults" style="margin-top:10px"></div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>الرسم البياني — دعم / مقاومة</h2>
+      <canvas id="chart"></canvas>
+      <div class="legend">
+        <span><i style="background:var(--bull)"></i> دعم</span>
+        <span><i style="background:var(--bear)"></i> مقاومة</span>
+        <span><i style="background:var(--amber)"></i> EMA20</span>
+      </div>
+
+      <div class="log">
+        <h2 style="margin-top:16px">سجل الإشارات</h2>
+        <div id="logList"></div>
+      </div>
+    </div>
+
+    <div class="card signal-card">
+      <h2 style="align-self:flex-start">الإشارة الحالية</h2>
+      <div class="gauge-wrap">
+        <canvas id="gauge"></canvas>
+        <div class="gauge-label">
+          <div class="pct" id="gaugePct">--</div>
+          <div class="lbl">نسبة الثقة</div>
+        </div>
+      </div>
+      <div class="direction-tag none" id="directionTag">بانتظار التحليل</div>
+      <div id="signalAge" style="font-family:var(--mono); font-size:11px; color:var(--text-dim); margin-top:6px; display:none"></div>
+
+      <div class="levels" id="entryExpiryRow" style="display:none">
+        <div><span class="lab">⏱ وقت الدخول</span><span class="val" id="entryTimeVal" style="color:var(--amber)">--</span></div>
+        <div><span class="lab">⏳ وقت الانتهاء (Expiry)</span><span class="val" id="expiryTimeVal" style="color:var(--amber)">--</span></div>
+      </div>
+
+      <div class="levels">
+        <div class="sup"><span class="lab">أقرب دعم</span><span class="val" id="supVal">--</span></div>
+        <div class="res"><span class="lab">أقرب مقاومة</span><span class="val" id="resVal">--</span></div>
+      </div>
+
+      <div class="reasons" id="reasonsList"></div>
+
+      <div class="hint">
+        <b>متى تدخل الصفقة:</b> الإشارة تُبنى على آخر شمعة مغلقة (مؤكدة)، وليس شمعة لسا تتكون.
+        لما تظهر الإشارة، ادخل فوراً بنفس اتجاهها (BUY/SELL) بسعر السوق الحالي، ومدة الصفقة/الانتهاء
+        (Expiry) خليها بنفس حجم الفريم المختار — مثلاً إشارة على فريم 5 دقائق ⟵ انتهاء بعد 5 دقائق.
+        لو فاتتك الإشارة وتحرك السعر بعيد عن مستوى الدعم/المقاومة المذكور، الأفضل تنتظر إشارة جديدة
+        بدل ما تدخل متأخر. <b>ملاحظة:</b> تصدر فقط عند توافق الترند + القرب من دعم/مقاومة + نمط شمعة (ثقة ≥ 65%).
+        هذا تحليل فني آلي وليس نصيحة مالية — استخدم إدارة رأس مال صارمة.
+      </div>
+
+      <div class="btn-row" style="width:100%; margin-top:12px; margin-bottom:0;">
+        <button class="btn" id="waShareBtn" onclick="shareWhatsApp()" style="flex:1">📲 مشاركة الإشارة على واتساب</button>
+      </div>
+    </div>
+
+    <div class="card" style="grid-column:1 / -1">
+      <h2>🔔 تنبيهات واتساب تلقائية (اختياري)</h2>
+      <div class="controls" style="margin-bottom:10px">
+        <div class="field">
+          <label>رقم واتساب (بالصيغة الدولية، مثال: +9665xxxxxxx)</label>
+          <input type="text" id="waPhone" placeholder="+9665xxxxxxxx">
+        </div>
+        <div class="field">
+          <label>مفتاح CallMeBot</label>
+          <input type="text" id="waKey" placeholder="APIKEY">
+        </div>
+        <div class="field" style="display:flex; align-items:flex-end;">
+          <button class="btn" id="waAutoBtn" onclick="toggleWaAuto()" style="width:100%">تفعيل الإرسال التلقائي: متوقف</button>
+        </div>
+      </div>
+      <div class="hint">
+        <b>خطوات التفعيل (مرة وحدة، مجاني بالكامل):</b>
+        1) أضف رقم CallMeBot لجهات اتصالك على واتساب: <b>+34 621 07 32 45</b>
+        2) أرسل له رسالة "I allow callmebot to send me messages"
+        3) بترجع لك رسالة فيها الـ APIKEY — الصقه فوق مع رقمك
+        4) فعّل "الإرسال التلقائي" — بترسل لك كل إشارة جديدة تلقائياً على واتساب فور صدورها.
+        (خدمة مجانية من طرف ثالث CallMeBot للاستخدام الشخصي فقط — المفتاح والرقم يبقوا بمتصفحك فقط ومارايحين لأي سيرفر إلا CallMeBot نفسه)
+      </div>
+    </div>
+  </div>
+
+  <footer>محطة إشارات مبنية على استراتيجية: EMA20/50/200 + بنية السوق + تجميع مستويات pivot + أنماط شموع يابانية كلاسيكية<br><span style="font-family:var(--mono); color:var(--amber); opacity:.6">v2026.07.13-11 (إصلاح مهم: كشف التعارض يشتغل بسوق عرضي Range أيضاً)</span></footer>
+</div>
+
+<script>
+/* ============================= STATE ============================= */
+let mode = 'deriv';
+let autoTimer = null;
+let candles = [];
+let logHistory = [];
+let waAutoOn = false;
+let lastSignal = null;
+let lastSentSignalKey = null;
+let lastLoggedSignal = null; // {direction, price, time} - لمنع تسجيل نفس الفرصة مرتين
+let signalGeneratedAt = null; // وقت توليد آخر إشارة جديدة (لحساب "عمر الإشارة")
+
+const els = {
+  status: document.getElementById('statusLine'),
+  symbolField: document.getElementById('symbolField'),
+  symbolSelect: document.getElementById('symbolSelect'),
+  intervalSelect: document.getElementById('intervalSelect'),
+  pasteBox: document.getElementById('pasteBox'),
+  analyzeBtn: document.getElementById('analyzeBtn'),
+  autoBtn: document.getElementById('autoBtn'),
+  gaugePct: document.getElementById('gaugePct'),
+  directionTag: document.getElementById('directionTag'),
+  supVal: document.getElementById('supVal'),
+  resVal: document.getElementById('resVal'),
+  reasonsList: document.getElementById('reasonsList'),
+  logList: document.getElementById('logList'),
+};
+
+function setMode(m){
+  mode = m;
+  document.getElementById('tabDeriv').classList.toggle('active', m==='deriv');
+  document.getElementById('tabLive').classList.toggle('active', m==='live');
+  document.getElementById('tabForex').classList.toggle('active', m==='forex');
+  document.getElementById('tabDemo').classList.toggle('active', m==='demo');
+  document.getElementById('tabPaste').classList.toggle('active', m==='paste');
+  document.getElementById('derivSymbolField').style.display = (m==='deriv') ? 'block' : 'none';
+  els.symbolField.style.display = (m==='live') ? 'block' : 'none';
+  document.getElementById('forexSymbolField').style.display = (m==='forex') ? 'block' : 'none';
+  document.getElementById('forexKeyField').style.display = (m==='forex') ? 'block' : 'none';
+  document.getElementById('forexKeyHint').style.display = (m==='forex') ? 'block' : 'none';
+  els.pasteBox.classList.toggle('show', m==='paste');
+  els.status.textContent = m==='deriv' ? 'فوركس Deriv: مجاني بالكامل، يجيب بيانات لحظية حقيقية عبر WebSocket'
+                          : m==='live' ? 'مباشر: سيتم الجلب من Binance عند الضغط على تحليل'
+                          : m==='forex' ? 'فوركس مباشر (Finnhub): يحتاج مفتاح مدفوع للبيانات اللحظية بدون تأخير'
+                          : m==='demo' ? 'تجريبي: بيانات محاكاة عشوائية لكل تحليل'
+                          : 'الصق بياناتك بصيغة CSV ثم اضغط تحليل';
+}
+
+/* ============================= DATA SOURCES ============================= */
+// يشيل آخر شمعة لو لسا ما قفلت فعلياً (وقت إغلاقها المتوقع لسا ما جا) - يضمن التحليل يعتمد فقط على شموع مغلقة مؤكدة
+function dropUnclosedCandle(candles, intervalKey){
+  if(!candles || candles.length < 2) return candles;
+  const mins = INTERVAL_MINUTES[intervalKey] || 5;
+  const intervalMs = mins*60000;
+  const last = candles[candles.length-1];
+  const expectedCloseTime = last.time.getTime() + intervalMs;
+  if(expectedCloseTime > Date.now()){
+    return candles.slice(0, -1);
+  }
+  return candles;
+}
+
+async function fetchLive(symbol, interval){
+  const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=150`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('فشل الاتصال بمصدر البيانات (Binance)');
+  const raw = await res.json();
+  const out = raw.map(k => ({
+    time: new Date(k[0]),
+    open: parseFloat(k[1]), high: parseFloat(k[2]),
+    low: parseFloat(k[3]), close: parseFloat(k[4]),
+  }));
+  return dropUnclosedCandle(out, interval);
+}
+
+function fetchDeriv(symbol, interval){
+  const granMap = {'1m':60,'5m':300,'15m':900,'30m':1800,'1h':3600,'4h':14400,'1d':86400};
+  const granularity = granMap[interval];
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const ws = new WebSocket('wss://ws.derivws.com/websockets/v3?app_id=1089');
+    const timer = setTimeout(() => {
+      if(!settled){ settled=true; try{ws.close();}catch(e){} reject(new Error('انتهت مهلة الاتصال بـ Deriv - جرب مرة ثانية')); }
+    }, 12000);
+    ws.onopen = () => {
+      ws.send(JSON.stringify({
+        ticks_history: symbol,
+        adjust_start_time: 1,
+        count: 200,
+        end: "latest",
+        start: 1,
+        style: "candles",
+        granularity: granularity
+      }));
+    };
+    ws.onmessage = (event) => {
+      if(settled) return;
+      const data = JSON.parse(event.data);
+      if(data.error){
+        settled = true; clearTimeout(timer); try{ws.close();}catch(e){}
+        reject(new Error('خطأ من Deriv: ' + data.error.message));
+        return;
+      }
+      if(data.msg_type === 'candles' && data.candles){
+        settled = true; clearTimeout(timer);
+        const out = data.candles.map(c => ({
+          time: new Date(c.epoch*1000),
+          open: parseFloat(c.open), high: parseFloat(c.high),
+          low: parseFloat(c.low), close: parseFloat(c.close)
+        }));
+        try{ws.close();}catch(e){}
+        resolve(dropUnclosedCandle(out, interval));
+      }
+    };
+    ws.onerror = () => {
+      if(!settled){ settled=true; clearTimeout(timer); reject(new Error('فشل الاتصال بـ Deriv WebSocket - تأكد من اتصال الإنترنت')); }
+    };
+  });
+}
+
+async function fetchForex(symbol, interval, apikey){
+  if(!apikey) throw new Error('لازم تدخل مفتاح Finnhub أولاً (مجاني - شوف رابط التسجيل تحت)');
+  const resMap = {'1m':'1','5m':'5','15m':'15','30m':'30','1h':'60','1d':'D'};
+  const resolution = resMap[interval];
+  if(!resolution) throw new Error('فريم 4 ساعات غير مدعوم بوضع الفوركس - اختر فريم ثاني');
+  const barSeconds = {'1':60,'5':300,'15':900,'30':1800,'60':3600,'D':86400}[resolution];
+  const to = Math.floor(Date.now()/1000);
+  const from = to - barSeconds*200;
+  const url = `https://finnhub.io/api/v1/forex/candle?symbol=${encodeURIComponent(symbol)}&resolution=${resolution}&from=${from}&to=${to}&token=${apikey}`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('فشل الاتصال بـ Finnhub - تأكد من صحة المفتاح');
+  const data = await res.json();
+  if(data.s !== 'ok' || !data.t || data.t.length===0){
+    throw new Error('ما فيه بيانات كافية لهذا الزوج/الفريم - جرب فريم أعلى أو زوج ثاني');
+  }
+  const out = [];
+  for(let i=0;i<data.t.length;i++){
+    out.push({time:new Date(data.t[i]*1000), open:data.o[i], high:data.h[i], low:data.l[i], close:data.c[i]});
+  }
+  return dropUnclosedCandle(out, interval);
+}
+
+function generateDemo(){
+  const n = 150;
+  const bias = Math.random() > 0.5 ? 1 : -1; // صاعد أو هابط عشوائي
+  let price = 1.1000 + Math.random()*0.02;
+  const arr = [];
+  for(let i=0;i<n;i++){
+    const drift = bias * 0.00015 * (1 + Math.sin(i/12));
+    const noise = (Math.random()-0.5) * 0.0012;
+    const open = price;
+    price = price + drift + noise;
+    const close = price;
+    const high = Math.max(open, close) + Math.random()*0.0008;
+    const low = Math.min(open, close) - Math.random()*0.0008;
+    arr.push({time:new Date(Date.now()-(n-i)*5*60000), open, high, low, close});
+  }
+  // فرض نمط شمعة انعكاسي واضح على آخر شمعتين لضمان ظهور إشارة تعليمية
+  const last = arr[arr.length-1], prev = arr[arr.length-2];
+  if(bias>0){
+    prev.open = prev.close + 0.0018; // شمعة هابطة صغيرة
+    last.open = prev.close - 0.0005;
+    last.close = prev.open + 0.0012; // ابتلاع صاعد
+    last.high = last.close + 0.0006; last.low = Math.min(last.open, prev.open) - 0.0004;
+    prev.high = Math.max(prev.open, prev.close)+0.0003; prev.low = Math.min(prev.open, prev.close)-0.0003;
+  } else {
+    prev.open = prev.close - 0.0018;
+    last.open = prev.close + 0.0005;
+    last.close = prev.open - 0.0012;
+    last.low = last.close - 0.0006; last.high = Math.max(last.open, prev.open) + 0.0004;
+    prev.high = Math.max(prev.open, prev.close)+0.0003; prev.low = Math.min(prev.open, prev.close)-0.0003;
+  }
+  return arr;
+}
+
+function parsePaste(text){
+  const lines = text.trim().split('\n').map(l=>l.trim()).filter(Boolean);
+  const out = [];
+  for(const line of lines){
+    const parts = line.split(',').map(p=>p.trim());
+    if(parts.length < 5) continue;
+    const [t,o,h,l,c] = parts;
+    const time = new Date(t);
+    out.push({
+      time: isNaN(time.getTime()) ? new Date() : time,
+      open: parseFloat(o), high: parseFloat(h), low: parseFloat(l), close: parseFloat(c)
+    });
+  }
+  if(out.length < 20) throw new Error('محتاج 20 شمعة على الأقل، والأفضل 60+ لدقة أعلى');
+  return out;
+}
+
+/* ============================= INDICATORS ============================= */
+function ema(values, span){
+  const k = 2/(span+1);
+  const out = [values[0]];
+  for(let i=1;i<values.length;i++) out.push(values[i]*k + out[i-1]*(1-k));
+  return out;
+}
+
+function calculateRSI(closes, period=14){
+  if(closes.length < period+1) return null;
+  let gains=0, losses=0;
+  for(let i=1;i<=period;i++){
+    const diff = closes[i]-closes[i-1];
+    if(diff>=0) gains+=diff; else losses-=diff;
+  }
+  let avgGain = gains/period, avgLoss = losses/period;
+  const rsiArr = [];
+  for(let i=period+1;i<closes.length;i++){
+    const diff = closes[i]-closes[i-1];
+    const gain = diff>0 ? diff : 0;
+    const loss = diff<0 ? -diff : 0;
+    avgGain = (avgGain*(period-1)+gain)/period;
+    avgLoss = (avgLoss*(period-1)+loss)/period;
+    const rs = avgLoss===0 ? 100 : avgGain/avgLoss;
+    rsiArr.push(100 - (100/(1+rs)));
+  }
+  return rsiArr.length ? rsiArr[rsiArr.length-1] : null;
+}
+
+// يرجع سلسلة RSI كاملة مع فهرسة تطابق مصفوفة الشموع الأصلية (index i بالسلسلة = candles[i])
+function calculateRSISeries(closes, period=14){
+  const series = new Array(closes.length).fill(null);
+  if(closes.length < period+1) return series;
+  let gains=0, losses=0;
+  for(let i=1;i<=period;i++){
+    const diff = closes[i]-closes[i-1];
+    if(diff>=0) gains+=diff; else losses-=diff;
+  }
+  let avgGain = gains/period, avgLoss = losses/period;
+  const rs0 = avgLoss===0 ? 100 : avgGain/avgLoss;
+  series[period] = 100-(100/(1+rs0));
+  for(let i=period+1;i<closes.length;i++){
+    const diff = closes[i]-closes[i-1];
+    const gain = diff>0 ? diff : 0;
+    const loss = diff<0 ? -diff : 0;
+    avgGain = (avgGain*(period-1)+gain)/period;
+    avgLoss = (avgLoss*(period-1)+loss)/period;
+    const rs = avgLoss===0 ? 100 : avgGain/avgLoss;
+    series[i] = 100-(100/(1+rs));
+  }
+  return series;
+}
+
+function calculateATR(candles, period=14){
+  if(candles.length < period+1) return null;
+  const trs = [];
+  for(let i=1;i<candles.length;i++){
+    const c = candles[i], p = candles[i-1];
+    trs.push(Math.max(c.high-c.low, Math.abs(c.high-p.close), Math.abs(c.low-p.close)));
+  }
+  // ATR الحالي = متوسط آخر period من الـTR
+  const recent = trs.slice(-period);
+  const atrNow = recent.reduce((a,b)=>a+b,0)/recent.length;
+  // متوسط تاريخي أوسع للمقارنة (آخر 50 قيمة TR أو كل الموجود)
+  const baseline = trs.slice(-Math.min(50, trs.length));
+  const atrBaseline = baseline.reduce((a,b)=>a+b,0)/baseline.length;
+  return {atrNow, atrBaseline};
+}
+
+// MACD: يرجع خط MACD وخط الإشارة والهستوجرام لآخر نقطتين (للكشف عن تقاطع جديد)
+function calculateMACD(closes, fast=12, slow=26, signalSpan=9){
+  if(closes.length < slow+signalSpan) return null;
+  const emaFast = ema(closes, fast);
+  const emaSlow = ema(closes, slow);
+  const macdLine = closes.map((_,i)=>emaFast[i]-emaSlow[i]);
+  const signalLine = ema(macdLine, signalSpan);
+  const hist = macdLine.map((v,i)=>v-signalLine[i]);
+  const n = closes.length;
+  return {
+    macd: macdLine[n-1], signal: signalLine[n-1], hist: hist[n-1],
+    prevMacd: macdLine[n-2], prevSignal: signalLine[n-2], prevHist: hist[n-2],
+  };
+}
+
+// بولنجر باندز: المتوسط المتحرك ±2 انحراف معياري
+function calculateBollinger(closes, period=20, mult=2){
+  if(closes.length < period) return null;
+  const slice = closes.slice(-period);
+  const mean = slice.reduce((a,b)=>a+b,0)/period;
+  const variance = slice.reduce((a,b)=>a+(b-mean)*(b-mean),0)/period;
+  const sd = Math.sqrt(variance);
+  return {upper: mean+mult*sd, middle: mean, lower: mean-mult*sd};
+}
+
+// ستوكاستك: %K و %D (متوسط 3 فترات لـ%K)
+function calculateStochastic(candles, period=14, smoothD=3){
+  if(candles.length < period+smoothD) return null;
+  const kValues = [];
+  for(let i=period-1;i<candles.length;i++){
+    const win = candles.slice(i-period+1, i+1);
+    const hh = Math.max(...win.map(c=>c.high));
+    const ll = Math.min(...win.map(c=>c.low));
+    const close = candles[i].close;
+    kValues.push(hh===ll ? 50 : ((close-ll)/(hh-ll))*100);
+  }
+  const dSlice = kValues.slice(-smoothD);
+  const d = dSlice.reduce((a,b)=>a+b,0)/dSlice.length;
+  return {k: kValues[kValues.length-1], d};
+}
+
+// يبحث عن تباعد (Divergence) بين السعر ومؤشر RSI خلال آخر lookback شمعة
+function detectDivergence(candles, rsiSeries, lookback=25){
+  const start = Math.max(0, candles.length-lookback);
+  const slice = candles.slice(start);
+  const rsiSlice = rsiSeries.slice(start);
+  const w = 2;
+  let lows=[], highs=[];
+  for(let i=w;i<slice.length-w;i++){
+    if(rsiSlice[i]==null) continue;
+    const lowWin = slice.slice(i-w,i+w+1).map(x=>x.low);
+    const highWin = slice.slice(i-w,i+w+1).map(x=>x.high);
+    if(slice[i].low === Math.min(...lowWin)) lows.push({idx:i, price:slice[i].low, rsi:rsiSlice[i]});
+    if(slice[i].high === Math.max(...highWin)) highs.push({idx:i, price:slice[i].high, rsi:rsiSlice[i]});
+  }
+  let bullish=false, bearish=false;
+  if(lows.length>=2){
+    const a=lows[lows.length-2], b=lows[lows.length-1];
+    if(b.price < a.price && b.rsi > a.rsi) bullish = true; // قاع أدنى بالسعر لكن RSI يصعد = تباعد إيجابي
+  }
+  if(highs.length>=2){
+    const a=highs[highs.length-2], b=highs[highs.length-1];
+    if(b.price > a.price && b.rsi < a.rsi) bearish = true; // قمة أعلى بالسعر لكن RSI ينزل = تباعد سلبي
+  }
+  return {bullish, bearish};
+}
+
+function detectTrend(c){
+  const closes = c.map(x=>x.close);
+  const emaFast = ema(closes, 20);
+  const emaSlow = ema(closes, 50);
+  const trendSpan = Math.min(200, Math.max(10, c.length-1));
+  const emaTrend = ema(closes, trendSpan);
+
+  const i = closes.length-1;
+  const price = closes[i];
+  const bullStack = emaFast[i] > emaSlow[i] && emaSlow[i] > emaTrend[i];
+  const bearStack = emaFast[i] < emaSlow[i] && emaSlow[i] < emaTrend[i];
+
+  // بنية السوق: قمم وقيعان محلية بنافذة 5
+  const w = 5;
+  let swingHighs=[], swingLows=[];
+  for(let j=w;j<c.length-w;j++){
+    const hs = c.slice(j-w,j+w+1).map(x=>x.high);
+    const ls = c.slice(j-w,j+w+1).map(x=>x.low);
+    if(c[j].high === Math.max(...hs)) swingHighs.push(c[j].high);
+    if(c[j].low === Math.min(...ls)) swingLows.push(c[j].low);
+  }
+  let structure = 'غير واضحة';
+  if(swingHighs.length>=2 && swingLows.length>=2){
+    const hh = swingHighs.at(-1) > swingHighs.at(-2);
+    const hl = swingLows.at(-1) > swingLows.at(-2);
+    const lh = swingHighs.at(-1) < swingHighs.at(-2);
+    const ll = swingLows.at(-1) < swingLows.at(-2);
+    if(hh && hl) structure = 'صاعد قوي (HH/HL)';
+    else if(lh && ll) structure = 'هابط قوي (LH/LL)';
+    else if(hh && ll) structure = 'تذبذب واسع';
+    else structure = 'عرضي/تجميع';
+  }
+
+  let direction='عرضي (Range)', score=5;
+  if(bullStack && price > emaSlow[i]){ direction='صاعد (Uptrend)'; score = structure.includes('صاعد') ? 40 : 30; }
+  else if(bearStack && price < emaSlow[i]){ direction='هابط (Downtrend)'; score = structure.includes('هابط') ? 40 : 30; }
+
+  return {direction, score, structure, emaFast};
+}
+
+function findLevels(c){
+  const lookback = c.slice(-80);
+  const order = 3;
+  let pivots = [];
+  for(let i=order;i<lookback.length-order;i++){
+    const hs = lookback.slice(i-order,i+order+1).map(x=>x.high);
+    const ls = lookback.slice(i-order,i+order+1).map(x=>x.low);
+    if(lookback[i].high === Math.max(...hs)) pivots.push(lookback[i].high);
+    if(lookback[i].low === Math.min(...ls)) pivots.push(lookback[i].low);
+  }
+  pivots.sort((a,b)=>a-b);
+  const tol = 0.0012;
+  let clusters = [];
+  for(const p of pivots){
+    if(clusters.length===0 || Math.abs(p - clusters.at(-1).at(-1))/clusters.at(-1).at(-1) > tol){
+      clusters.push([p]);
+    } else clusters.at(-1).push(p);
+  }
+  const levels = clusters.filter(cl=>cl.length>=2).map(cl=>cl.reduce((a,b)=>a+b,0)/cl.length);
+  const price = c.at(-1).close;
+  const support = levels.filter(l=>l<price).sort((a,b)=>b-a);
+  const resistance = levels.filter(l=>l>price).sort((a,b)=>a-b);
+  return {support: support.slice(0,3), resistance: resistance.slice(0,3)};
+}
+
+function proximityScore(price, support, resistance){
+  const candidates = [...support.map(s=>['support',s]), ...resistance.map(r=>['resistance',r])];
+  if(candidates.length===0) return {score:0, kind:null, level:null};
+  let best = candidates[0], bestDist = Math.abs(candidates[0][1]-price);
+  for(const cd of candidates){
+    const d = Math.abs(cd[1]-price);
+    if(d<bestDist){bestDist=d; best=cd;}
+  }
+  const distPct = bestDist/price;
+  let score = 0;
+  if(distPct<=0.0015) score=30;
+  else if(distPct<=0.003) score=18;
+  else if(distPct<=0.006) score=8;
+  return {score, kind:best[0], level:best[1]};
+}
+
+/* ---------- Candlestick patterns ---------- */
+const body = c => Math.abs(c.close-c.open);
+const range = c => Math.max(c.high-c.low, 1e-9);
+function isBullEngulf(c1,c2){ return c1.close<c1.open && c2.close>c2.open && c2.close>=c1.open && c2.open<=c1.close; }
+function isBearEngulf(c1,c2){ return c1.close>c1.open && c2.close<c2.open && c2.open>=c1.close && c2.close<=c1.open; }
+function isHammer(c){ const b=body(c), r=range(c); const lw=Math.min(c.open,c.close)-c.low; const uw=c.high-Math.max(c.open,c.close); return b/r<0.35 && lw>b*2 && uw<b; }
+function isShootingStar(c){ const b=body(c), r=range(c); const uw=c.high-Math.max(c.open,c.close); const lw=Math.min(c.open,c.close)-c.low; return b/r<0.35 && uw>b*2 && lw<b; }
+function isDoji(c){ return body(c)/range(c) < 0.1; }
+function isMorningStar(c1,c2,c3){ return c1.close<c1.open && body(c2)/range(c2)<0.3 && c3.close>c3.open && c3.close>(c1.open+c1.close)/2; }
+function isEveningStar(c1,c2,c3){ return c1.close>c1.open && body(c2)/range(c2)<0.3 && c3.close<c3.open && c3.close<(c1.open+c1.close)/2; }
+
+function isThreeWhiteSoldiers(c1,c2,c3){
+  const bullish = x => x.close>x.open && body(x)/range(x) > 0.55;
+  return bullish(c1) && bullish(c2) && bullish(c3) &&
+         c2.close>c1.close && c3.close>c2.close &&
+         c2.open>c1.open && c2.open<c1.close &&
+         c3.open>c2.open && c3.open<c2.close;
+}
+function isThreeBlackCrows(c1,c2,c3){
+  const bearish = x => x.close<x.open && body(x)/range(x) > 0.55;
+  return bearish(c1) && bearish(c2) && bearish(c3) &&
+         c2.close<c1.close && c3.close<c2.close &&
+         c2.open<c1.open && c2.open>c1.close &&
+         c3.open<c2.open && c3.open>c2.close;
+}
+function isPiercingLine(c1,c2){
+  return c1.close<c1.open && c2.close>c2.open &&
+         c2.open<c1.low &&
+         c2.close>(c1.open+c1.close)/2 && c2.close<c1.open;
+}
+function isDarkCloudCover(c1,c2){
+  return c1.close>c1.open && c2.close<c2.open &&
+         c2.open>c1.high &&
+         c2.close<(c1.open+c1.close)/2 && c2.close>c1.open;
+}
+
+function scanPatterns(c){
+  const found = [];
+  if(c.length<3) return found;
+  const [c1,c2,c3] = c.slice(-3);
+  if(isBullEngulf(c2,c3)) found.push(['BUY','ابتلاع صاعد (Bullish Engulfing)']);
+  if(isBearEngulf(c2,c3)) found.push(['SELL','ابتلاع هابط (Bearish Engulfing)']);
+  if(isHammer(c3)) found.push(['BUY','مطرقة (Hammer)']);
+  if(isShootingStar(c3)) found.push(['SELL','نجمة هابطة (Shooting Star)']);
+  if(isDoji(c3)) found.push(['NEUTRAL','دوجي (Doji) - تردد بالسوق']);
+  if(isMorningStar(c1,c2,c3)) found.push(['BUY','نجمة الصباح (Morning Star)']);
+  if(isEveningStar(c1,c2,c3)) found.push(['SELL','نجمة المساء (Evening Star)']);
+  if(isThreeWhiteSoldiers(c1,c2,c3)) found.push(['BUY','ثلاثة جنود بيض (Three White Soldiers)']);
+  if(isThreeBlackCrows(c1,c2,c3)) found.push(['SELL','ثلاثة غربان سود (Three Black Crows)']);
+  if(isPiercingLine(c2,c3)) found.push(['BUY','خط اختراق (Piercing Line)']);
+  if(isDarkCloudCover(c2,c3)) found.push(['SELL','غطاء سحابي داكن (Dark Cloud Cover)']);
+  return found;
+}
+
+/* ============================= SIGNAL ENGINE ============================= */
+let MIN_CONFIDENCE = 80;
+
+function generateSignal(c, htfDirection){
+  const price = c.at(-1).close;
+  const {direction, score:trendScore, structure} = detectTrend(c);
+  const {support, resistance} = findLevels(c);
+  const prox = proximityScore(price, support, resistance);
+  const patterns = scanPatterns(c);
+  const closes = c.map(x=>x.close);
+  const rsi = calculateRSI(closes, 14);
+  const rsiSeries = calculateRSISeries(closes, 14);
+  const divergence = detectDivergence(c, rsiSeries);
+  const atr = calculateATR(c, 14);
+  const macd = calculateMACD(closes);
+  const boll = calculateBollinger(closes);
+  const stoch = calculateStochastic(c);
+
+  const reasons = [`الترند العام: ${direction} (بنية السوق: ${structure})`];
+  for(const [d,name] of patterns){ if(d!=='NEUTRAL') reasons.push(`نمط شمعة: ${name}`); else reasons.push(`ملاحظة: ${name}`); }
+  if(prox.level!==null){
+    reasons.push(`السعر قريب من منطقة ${prox.kind==='support'?'دعم':'مقاومة'} (${prox.level.toFixed(5)})`);
+  }
+  if(rsi!==null){
+    reasons.push(`RSI(14): ${rsi.toFixed(1)}`);
+  }
+  if(divergence.bullish) reasons.push('📈 تباعد إيجابي RSI (Bullish Divergence) - إشارة انعكاس صاعد كلاسيكية');
+  if(divergence.bearish) reasons.push('📉 تباعد سلبي RSI (Bearish Divergence) - إشارة انعكاس هابط كلاسيكية');
+  if(macd){
+    reasons.push(`MACD: ${macd.macd>macd.signal ? 'إيجابي فوق خط الإشارة' : 'سلبي تحت خط الإشارة'}`);
+  }
+  if(boll){
+    if(price<=boll.lower*1.001) reasons.push('السعر عند/تحت الحد السفلي لبولنجر باندز - منطقة ارتداد محتملة');
+    else if(price>=boll.upper*0.999) reasons.push('السعر عند/فوق الحد العلوي لبولنجر باندز - منطقة ارتداد محتملة');
+  }
+  if(stoch){
+    reasons.push(`ستوكاستك %K: ${stoch.k.toFixed(1)}`);
+  }
+  if(htfDirection){
+    reasons.push(`تأكيد فريم أعلى: ${htfDirection}`);
+  }
+
+  const buyPatternScore = patterns.some(p=>p[0]==='BUY') ? 30 : 0;
+  const sellPatternScore = patterns.some(p=>p[0]==='SELL') ? 30 : 0;
+
+  let buyTotal=0, sellTotal=0;
+  if(direction.startsWith('صاعد')){
+    buyTotal = trendScore + (prox.kind==='support'?prox.score:prox.score*0.4) + buyPatternScore;
+  } else if(direction.startsWith('هابط')){
+    sellTotal = trendScore + (prox.kind==='resistance'?prox.score:prox.score*0.4) + sellPatternScore;
+  } else {
+    buyTotal = (prox.kind==='support'?prox.score:0) + buyPatternScore*0.7;
+    sellTotal = (prox.kind==='resistance'?prox.score:0) + sellPatternScore*0.7;
+  }
+
+  // كشف التعارض: نمط شمعة يعاكس الجهة الرابحة فعلياً - علامة خطر تضعف الإشارة بدل ما تُتجاهل بصمت
+  // (نتحقق من الجهة الرابحة buyTotal/sellTotal مو بس الترند - عشان يشتغل حتى بسوق عرضي Range)
+  if(buyTotal > sellTotal && sellPatternScore>0){
+    buyTotal -= 25;
+    reasons.push('⚠️ تعارض: فيه نمط شمعة هابط رغم أن السعر يميل للشراء حالياً - إشارة أضعف وأقل موثوقية');
+  }
+  if(sellTotal > buyTotal && buyPatternScore>0){
+    sellTotal -= 25;
+    reasons.push('⚠️ تعارض: فيه نمط شمعة صاعد رغم أن السعر يميل للبيع حالياً - إشارة أضعف وأقل موثوقية');
+  }
+
+  // فلتر RSI: يمنع الشراء بتشبع شرائي والبيع بتشبع بيعي، ويكافئ الدخول عند التصحيح
+  if(rsi!==null){
+    if(rsi >= 75){
+      buyTotal -= 25;
+      reasons.push('⚠️ RSI بمنطقة تشبع شرائي - يقلل قوة إشارة الشراء');
+    } else if(rsi <= 45 && direction.startsWith('صاعد')){
+      buyTotal += 8;
+    }
+    if(rsi <= 25){
+      sellTotal -= 25;
+      reasons.push('⚠️ RSI بمنطقة تشبع بيعي - يقلل قوة إشارة البيع');
+    } else if(rsi >= 55 && direction.startsWith('هابط')){
+      sellTotal += 8;
+    }
+  }
+
+  // تأكيد الفريم الأعلى: مكافأة لو متوافق، خصم كبير لو متعارض
+  if(htfDirection){
+    const htfBull = htfDirection.startsWith('صاعد');
+    const htfBear = htfDirection.startsWith('هابط');
+    if(htfBull){ buyTotal += 15; sellTotal -= 20; }
+    else if(htfBear){ sellTotal += 15; buyTotal -= 20; }
+  }
+
+  // مكافأة تباعد RSI - إشارة انعكاس كلاسيكية قوية
+  if(divergence.bullish) buyTotal += 12;
+  if(divergence.bearish) sellTotal += 12;
+
+  // MACD: مكافأة أساسية لتوافق الاتجاه + مكافأة إضافية لتقاطع جديد (Fresh Crossover)
+  if(macd){
+    if(macd.macd > macd.signal) buyTotal += 10; else sellTotal += 10;
+    const crossedUp = macd.prevMacd <= macd.prevSignal && macd.macd > macd.signal;
+    const crossedDown = macd.prevMacd >= macd.prevSignal && macd.macd < macd.signal;
+    if(crossedUp){ buyTotal += 10; reasons.push('⚡ تقاطع MACD صاعد جديد (Fresh Bullish Crossover)'); }
+    if(crossedDown){ sellTotal += 10; reasons.push('⚡ تقاطع MACD هابط جديد (Fresh Bearish Crossover)'); }
+  }
+
+  // بولنجر باندز: مكافأة ارتداد من الأطراف
+  if(boll){
+    if(price<=boll.lower*1.001) buyTotal += 8;
+    else if(price>=boll.upper*0.999) sellTotal += 8;
+  }
+
+  // ستوكاستك: تأكيد إضافي مستقل عن RSI لمناطق التشبع
+  if(stoch){
+    if(stoch.k<=20) buyTotal += 8;
+    else if(stoch.k>=80) sellTotal += 8;
+  }
+
+  // تعارض المؤشرات الإضافية مع الترند العام - نفس فلسفة فحص تعارض الأنماط
+  // (لأن هالمؤشرات كانت تضيف نقاط للجهة المعاكسة بدون ما تخصم من الجهة السائدة)
+  let bullishExtras = 0, bearishExtras = 0;
+  let bullishNames = [], bearishNames = [];
+  if(divergence.bullish){ bullishExtras++; bullishNames.push('تباعد RSI'); }
+  if(divergence.bearish){ bearishExtras++; bearishNames.push('تباعد RSI'); }
+  if(macd){
+    if(macd.macd>macd.signal){ bullishExtras++; bullishNames.push('MACD'); }
+    else { bearishExtras++; bearishNames.push('MACD'); }
+  }
+  if(boll){
+    if(price<=boll.lower*1.001){ bullishExtras++; bullishNames.push('بولنجر'); }
+    else if(price>=boll.upper*0.999){ bearishExtras++; bearishNames.push('بولنجر'); }
+  }
+  if(stoch){
+    if(stoch.k<=20){ bullishExtras++; bullishNames.push('ستوكاستك'); }
+    else if(stoch.k>=80){ bearishExtras++; bearishNames.push('ستوكاستك'); }
+  }
+  // نتحقق من التعارض بناءً على الجهة الرابحة فعلياً (buyTotal مقابل sellTotal)
+  // مو بس لما الترند يكون صاعد/هابط صراحة - عشان يشتغل حتى بسوق عرضي (Range)
+  if(buyTotal > sellTotal && bearishExtras>=2){
+    buyTotal -= 25;
+    reasons.push(`⚠️ تعارض: مؤشرات (${bearishNames.join('/')}) تميل هابط رغم ميل السعر الحالي للشراء - إشارة أضعف وأقل موثوقية`);
+  }
+  if(sellTotal > buyTotal && bullishExtras>=2){
+    sellTotal -= 25;
+    reasons.push(`⚠️ تعارض: مؤشرات (${bullishNames.join('/')}) تميل صاعد رغم ميل السعر الحالي للبيع - إشارة أضعف وأقل موثوقية`);
+  }
+
+  // فلتر ATR: يوقف الإشارة إذا السوق راكد جداً (بدون حركة كافية) أو متذبذب بعنف غير طبيعي
+  if(atr && atr.atrBaseline > 0){
+    const ratio = atr.atrNow / atr.atrBaseline;
+    if(ratio < 0.4){
+      buyTotal *= 0.5; sellTotal *= 0.5;
+      reasons.push('⚠️ تذبذب منخفض جداً (سوق راكد) - تم تخفيف قوة الإشارة');
+    } else if(ratio > 2.5){
+      buyTotal *= 0.6; sellTotal *= 0.6;
+      reasons.push('⚠️ تذبذب مرتفع بشكل غير طبيعي (احتمال حركة حادة/سبايك) - تم تخفيف قوة الإشارة');
+    }
+  }
+
+  let finalDir=null, confidence=0;
+  if(buyTotal>=sellTotal && buyTotal>=MIN_CONFIDENCE){ finalDir='BUY'; confidence=Math.min(Math.round(buyTotal),98); }
+  else if(sellTotal>buyTotal && sellTotal>=MIN_CONFIDENCE){ finalDir='SELL'; confidence=Math.min(Math.round(sellTotal),98); }
+
+  return {direction:finalDir, confidence, reasons, support, resistance, price};
+}
+
+/* ============================= RENDER ============================= */
+function signalText(sig, symbolLabel){
+  const dirAr = sig.direction==='BUY' ? '🟢 شراء BUY' : '🔴 بيع SELL';
+  const entry = new Date();
+  const mins = INTERVAL_MINUTES[els.intervalSelect.value] || 5;
+  const expiry = new Date(entry.getTime() + mins*60000);
+  const lines = [
+    `📊 إشارة تداول - ${symbolLabel||''}`,
+    dirAr,
+    `الثقة: ${sig.confidence}%`,
+    `السعر: ${sig.price.toFixed(5)}`,
+    `⏱ دخول: ${formatTime(entry)}`,
+    `⏳ انتهاء: ${formatTime(expiry)} (بعد ${mins} دقيقة)`,
+    ...sig.reasons.map(r=>'• '+r),
+    `الوقت: ${new Date().toLocaleTimeString('ar-EG')}`
+  ];
+  return lines.join('\n');
+}
+
+function currentSymbolLabel(){
+  if(mode==='deriv') return document.getElementById('derivSymbolSelect').selectedOptions[0].text;
+  if(mode==='live') return els.symbolSelect.options[els.symbolSelect.selectedIndex].text;
+  if(mode==='forex') return document.getElementById('forexSymbolSelect').selectedOptions[0].text;
+  if(mode==='demo') return 'بيانات تجريبية';
+  return 'بيانات ملصقة';
+}
+
+function shareWhatsApp(){
+  if(!lastSignal || !lastSignal.direction){ alert('ما فيه إشارة حالية للمشاركة'); return; }
+  const text = encodeURIComponent(signalText(lastSignal, currentSymbolLabel()));
+  window.open(`https://wa.me/?text=${text}`, '_blank');
+}
+
+function toggleWaAuto(){
+  waAutoOn = !waAutoOn;
+  const btn = document.getElementById('waAutoBtn');
+  btn.textContent = waAutoOn ? 'تفعيل الإرسال التلقائي: يعمل ✅' : 'تفعيل الإرسال التلقائي: متوقف';
+  btn.classList.toggle('toggle-on', waAutoOn);
+  if(waAutoOn){
+    const phone = document.getElementById('waPhone').value.trim();
+    const key = document.getElementById('waKey').value.trim();
+    if(!phone || !key){ alert('لازم تدخل رقم واتساب ومفتاح CallMeBot أولاً'); waAutoOn=false; btn.textContent='تفعيل الإرسال التلقائي: متوقف'; btn.classList.remove('toggle-on'); }
+  }
+}
+
+function sendWhatsAppAuto(sig){
+  const phone = document.getElementById('waPhone').value.trim();
+  const key = document.getElementById('waKey').value.trim();
+  if(!phone || !key) return;
+  const text = signalText(sig, currentSymbolLabel());
+  const url = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(phone)}&text=${encodeURIComponent(text)}&apikey=${encodeURIComponent(key)}`;
+  // إرسال عبر صورة خفية لتفادي قيود CORS - لا نحتاج قراءة الرد
+  const img = new Image();
+  img.src = url;
+}
+
+const INTERVAL_MINUTES = {'1m':1,'5m':5,'15m':15,'30m':30,'1h':60,'4h':240,'1d':1440};
+
+function formatTime(d){
+  return d.toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+}
+
+function isDuplicateSignal(sig){
+  if(!lastLoggedSignal || !sig.direction) return false;
+  if(lastLoggedSignal.symbol !== currentSymbolLabel()) return false;
+  if(lastLoggedSignal.direction !== sig.direction) return false;
+  const priceDiffPct = Math.abs(sig.price - lastLoggedSignal.price) / lastLoggedSignal.price;
+  const minutesSince = (Date.now() - lastLoggedSignal.time.getTime())/60000;
+  const intervalMinutes = INTERVAL_MINUTES[els.intervalSelect.value] || 5;
+  return priceDiffPct < 0.0008 && minutesSince < intervalMinutes*3;
+}
+
+function renderSignal(sig){
+  lastSignal = sig;
+  const isDup = isDuplicateSignal(sig);
+
+  if(sig.direction && waAutoOn && !isDup){
+    const key = sig.direction+'|'+sig.price.toFixed(5)+'|'+sig.confidence;
+    if(key !== lastSentSignalKey){
+      sendWhatsAppAuto(sig);
+      lastSentSignalKey = key;
+    }
+  }
+  drawGauge(sig.confidence, sig.direction);
+  els.gaugePct.textContent = sig.direction ? sig.confidence+'%' : '--';
+  if(isDup){
+    els.directionTag.className = 'direction-tag none';
+    els.directionTag.textContent = `🔁 نفس الفرصة السابقة (${sig.direction}) - مو إشارة جديدة`;
+  } else {
+    els.directionTag.className = 'direction-tag ' + (sig.direction==='BUY'?'buy':sig.direction==='SELL'?'sell':'none');
+    els.directionTag.textContent = sig.direction==='BUY' ? '🟢 إشارة شراء BUY' : sig.direction==='SELL' ? '🔴 إشارة بيع SELL' : 'لا توجد إشارة قوية حالياً';
+  }
+  els.supVal.textContent = sig.support[0] ? sig.support[0].toFixed(5) : '--';
+  els.resVal.textContent = sig.resistance[0] ? sig.resistance[0].toFixed(5) : '--';
+  els.reasonsList.innerHTML = sig.reasons.map(r=>`<div class="r"><span class="ic">›</span><span>${r}</span></div>`).join('');
+
+  const entryExpiryRow = document.getElementById('entryExpiryRow');
+  if(sig.direction && !isDup){
+    const entry = new Date();
+    const mins = INTERVAL_MINUTES[els.intervalSelect.value] || 5;
+    const expiry = new Date(entry.getTime() + mins*60000);
+    document.getElementById('entryTimeVal').textContent = formatTime(entry);
+    document.getElementById('expiryTimeVal').textContent = formatTime(expiry) + ` (+${mins}د)`;
+    entryExpiryRow.style.display = 'flex';
+  } else {
+    entryExpiryRow.style.display = 'none';
+  }
+
+  if(sig.direction && !isDup){
+    const symLabel = currentSymbolLabel();
+    logHistory.unshift({time:new Date(), dir:sig.direction, conf:sig.confidence, price:sig.price, symbol:symLabel});
+    logHistory = logHistory.slice(0,25);
+    lastLoggedSignal = {direction:sig.direction, price:sig.price, time:new Date(), symbol:symLabel};
+    signalGeneratedAt = new Date();
+  }
+  renderLog();
+}
+
+function renderLog(){
+  if(logHistory.length===0){ els.logList.innerHTML = '<div class="hint">لا توجد إشارات مسجلة بعد</div>'; return; }
+  els.logList.innerHTML = logHistory.map(h=>`
+    <div class="log-row">
+      <span>${h.time.toLocaleTimeString('ar-EG')}</span>
+      <span style="color:var(--text-dim)">${h.symbol||''}</span>
+      <span class="d ${h.dir==='BUY'?'buy':'sell'}">${h.dir}</span>
+      <span>${h.conf}%</span>
+      <span>${h.price.toFixed(5)}</span>
+    </div>`).join('');
+}
+
+function drawGauge(confidence, direction){
+  const canvas = document.getElementById('gauge');
+  const dpr = window.devicePixelRatio||1;
+  canvas.width = 220*dpr; canvas.height = 130*dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,220,130);
+  const cx=110, cy=115, r=90;
+
+  // خلفية القوس
+  ctx.beginPath(); ctx.arc(cx,cy,r,Math.PI,2*Math.PI); ctx.lineWidth=14; ctx.strokeStyle='#1B2028'; ctx.stroke();
+
+  const pct = (confidence||0)/100;
+  const color = direction==='BUY' ? '#2BB673' : direction==='SELL' ? '#E5484D' : '#E8AA3C';
+  ctx.beginPath(); ctx.arc(cx,cy,r,Math.PI, Math.PI + Math.PI*pct); ctx.lineWidth=14; ctx.strokeStyle=color; ctx.lineCap='round'; ctx.stroke();
+
+  // خط الحد الأدنى 65%
+  const thAngle = Math.PI + Math.PI*0.65;
+  ctx.beginPath();
+  ctx.moveTo(cx + (r-10)*Math.cos(thAngle), cy + (r-10)*Math.sin(thAngle));
+  ctx.lineTo(cx + (r+10)*Math.cos(thAngle), cy + (r+10)*Math.sin(thAngle));
+  ctx.strokeStyle='#8891A0'; ctx.lineWidth=2; ctx.stroke();
+}
+
+function drawChart(c, support, resistance){
+  const canvas = document.getElementById('chart');
+  const dpr = window.devicePixelRatio||1;
+  const W = canvas.clientWidth || 700, H = 340;
+  canvas.width = W*dpr; canvas.height = H*dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,W,H);
+
+  const data = c.slice(-80);
+  const allVals = data.flatMap(x=>[x.high,x.low]).concat(support).concat(resistance);
+  const max = Math.max(...allVals), min = Math.min(...allVals);
+  const pad = (max-min)*0.08 || max*0.001;
+  const top = max+pad, bot = min-pad;
+  const y = v => H - ((v-bot)/(top-bot))*H;
+  const stepX = W/data.length;
+
+  // خطوط الدعم/المقاومة
+  function hline(v, color){
+    ctx.beginPath(); ctx.setLineDash([4,4]);
+    ctx.moveTo(0,y(v)); ctx.lineTo(W,y(v));
+    ctx.strokeStyle=color; ctx.lineWidth=1; ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle=color; ctx.font='10px JetBrains Mono'; ctx.fillText(v.toFixed(5), 4, y(v)-3);
+  }
+  support.forEach(s=>hline(s,'#2BB673'));
+  resistance.forEach(r=>hline(r,'#E5484D'));
+
+  // EMA20
+  const closes = data.map(d=>d.close);
+  const e20 = ema(closes,20);
+  ctx.beginPath();
+  e20.forEach((v,i)=>{ const px=i*stepX+stepX/2; i===0?ctx.moveTo(px,y(v)):ctx.lineTo(px,y(v)); });
+  ctx.strokeStyle='#E8AA3C'; ctx.lineWidth=1.4; ctx.stroke();
+
+  // الشموع
+  data.forEach((d,i)=>{
+    const px = i*stepX + stepX/2;
+    const up = d.close>=d.open;
+    ctx.strokeStyle = up ? '#2BB673' : '#E5484D';
+    ctx.fillStyle = up ? '#2BB673' : '#E5484D';
+    ctx.beginPath(); ctx.moveTo(px, y(d.high)); ctx.lineTo(px, y(d.low)); ctx.lineWidth=1; ctx.stroke();
+    const bw = Math.max(stepX*0.55, 1.5);
+    const oy = y(d.open), cy2 = y(d.close);
+    ctx.fillRect(px-bw/2, Math.min(oy,cy2), bw, Math.max(Math.abs(oy-cy2),1));
+  });
+}
+
+/* ============================= MAIN FLOW ============================= */
+const HIGHER_TF = {'1m':'5m','5m':'15m','15m':'1h','30m':'1h','1h':'4h','4h':'1d','1d':'1d'};
+
+async function fetchHigherTimeframeTrend(){
+  try{
+    const htfInterval = HIGHER_TF[els.intervalSelect.value];
+    if(!htfInterval || htfInterval===els.intervalSelect.value) return null;
+    let htfCandles = null;
+    if(mode==='deriv'){
+      htfCandles = await fetchDeriv(document.getElementById('derivSymbolSelect').value, htfInterval);
+    } else if(mode==='live'){
+      htfCandles = await fetchLive(els.symbolSelect.value, htfInterval);
+    } else if(mode==='forex'){
+      if(htfInterval==='4h') return null; // فريم 4 ساعات غير مدعوم بـ Finnhub
+      htfCandles = await fetchForex(document.getElementById('forexSymbolSelect').value, htfInterval, document.getElementById('finnhubKey').value.trim());
+    } else {
+      return null; // ما فيه تأكيد فريم أعلى بوضع التجريبي أو اللصق - ما فيه مصدر بيانات إضافي
+    }
+    if(!htfCandles || htfCandles.length < 20) return null;
+    const {direction} = detectTrend(htfCandles);
+    return direction;
+  }catch(e){
+    return null; // فشل جلب الفريم الأعلى لا يوقف التحليل الأساسي
+  }
+}
+
+const DERIV_SCAN_LIST = [
+  {value:'frxEURUSD', label:'EUR/USD'},
+  {value:'frxGBPUSD', label:'GBP/USD'},
+  {value:'frxUSDJPY', label:'USD/JPY'},
+  {value:'frxAUDUSD', label:'AUD/USD'},
+  {value:'frxUSDCAD', label:'USD/CAD'},
+  {value:'frxUSDCHF', label:'USD/CHF'},
+  {value:'frxNZDUSD', label:'NZD/USD'},
+  {value:'frxEURGBP', label:'EUR/GBP'},
+  {value:'frxEURJPY', label:'EUR/JPY'},
+  {value:'frxGBPJPY', label:'GBP/JPY'},
+  {value:'frxXAUUSD', label:'XAU/USD (ذهب)'},
+  {value:'R_10', label:'Volatility 10'},
+  {value:'R_25', label:'Volatility 25'},
+  {value:'R_50', label:'Volatility 50'},
+  {value:'R_75', label:'Volatility 75'},
+  {value:'R_100', label:'Volatility 100'},
+  {value:'1HZ10V', label:'Volatility 10 (1s)'},
+  {value:'1HZ25V', label:'Volatility 25 (1s)'},
+  {value:'1HZ50V', label:'Volatility 50 (1s)'},
+  {value:'1HZ100V', label:'Volatility 100 (1s)'},
+  {value:'BOOM500', label:'Boom 500'},
+  {value:'BOOM1000', label:'Boom 1000'},
+  {value:'CRASH500', label:'Crash 500'},
+  {value:'CRASH1000', label:'Crash 1000'},
+];
+
+async function scanAllPairs(){
+  if(mode!=='deriv'){ els.status.textContent='⚠️ مسح كل الأزواج متاح بس بوضع "فوركس Deriv"'; return; }
+  const btn = document.getElementById('scanBtn');
+  const statusEl = document.getElementById('scanStatus');
+  const resultsEl = document.getElementById('scanResults');
+  btn.disabled = true;
+  btn.textContent = '⏳ جاري المسح...';
+  resultsEl.innerHTML = '';
+  statusEl.style.display = 'block';
+  MIN_CONFIDENCE = parseInt(document.getElementById('strengthSelect').value, 10) || 80;
+
+  const found = [];
+  for(let i=0;i<DERIV_SCAN_LIST.length;i++){
+    const item = DERIV_SCAN_LIST[i];
+    statusEl.textContent = `جاري فحص ${item.label}... (${i+1}/${DERIV_SCAN_LIST.length})`;
+    try{
+      const c = await fetchDeriv(item.value, els.intervalSelect.value);
+      let htfDirection = null;
+      try{
+        const htfInterval = HIGHER_TF[els.intervalSelect.value];
+        if(htfInterval && htfInterval!==els.intervalSelect.value){
+          const htfCandles = await fetchDeriv(item.value, htfInterval);
+          if(htfCandles && htfCandles.length>=20) htfDirection = detectTrend(htfCandles).direction;
+        }
+      }catch(e){}
+      const sig = generateSignal(c, htfDirection);
+      if(sig.direction) found.push({label:item.label, value:item.value, sig});
+    }catch(e){
+      // تجاهل أي زوج يفشل جلبه (مثلاً فوركس حقيقي مقفل بعطلة الأسبوع) واستمر بالباقي
+    }
+  }
+
+  found.sort((a,b)=>b.sig.confidence - a.sig.confidence);
+  const top = found.slice(0,3);
+
+  if(top.length===0){
+    resultsEl.innerHTML = '<div class="hint">ما فيه فرص قوية حالياً بأي زوج حسب حد الثقة المختار — جرب تنزل حد الثقة أو أعد المسح بعد شوي</div>';
+  } else {
+    resultsEl.innerHTML = top.map(r => `
+      <div class="scan-row">
+        <div>
+          <div class="sym">${r.label}</div>
+          <div class="info">ثقة ${r.sig.confidence}% · السعر ${r.sig.price.toFixed(5)}</div>
+        </div>
+        <div class="badge ${r.sig.direction==='BUY'?'buy':'sell'}">${r.sig.direction}</div>
+      </div>
+    `).join('');
+  }
+  statusEl.textContent = `✅ تم فحص ${DERIV_SCAN_LIST.length} زوج — لقينا ${found.length} فرصة، معروض أقوى ${top.length} بس`;
+  btn.disabled = false;
+  btn.textContent = '🔎 امسح كل الأزواج الآن';
+}
+
+async function analyzeNow(){
+  MIN_CONFIDENCE = parseInt(document.getElementById('strengthSelect').value, 10) || 80;
+  els.analyzeBtn.disabled = true;
+  els.analyzeBtn.textContent = '⏳ جاري التحليل...';
+  try{
+    if(mode==='deriv'){
+      els.status.textContent = 'جاري الجلب من Deriv...';
+      candles = await fetchDeriv(document.getElementById('derivSymbolSelect').value, els.intervalSelect.value);
+    } else if(mode==='live'){
+      els.status.textContent = 'جاري الجلب من Binance...';
+      candles = await fetchLive(els.symbolSelect.value, els.intervalSelect.value);
+    } else if(mode==='forex'){
+      els.status.textContent = 'جاري الجلب من Finnhub...';
+      candles = await fetchForex(document.getElementById('forexSymbolSelect').value, els.intervalSelect.value, document.getElementById('finnhubKey').value.trim());
+    } else if(mode==='demo'){
+      candles = generateDemo();
+    } else {
+      candles = parsePaste(els.pasteBox.value);
+    }
+    els.status.textContent = 'جاري التحقق من الفريم الأعلى...';
+    const htfDirection = await fetchHigherTimeframeTrend();
+    const sig = generateSignal(candles, htfDirection);
+    drawChart(candles, sig.support, sig.resistance);
+    renderSignal(sig);
+    els.status.textContent = `آخر تحديث: ${new Date().toLocaleTimeString('ar-EG')} — ${candles.length} شمعة${htfDirection ? ' — فريم أعلى: '+htfDirection : ''}`;
+  }catch(err){
+    els.status.textContent = '⚠️ ' + err.message;
+  }finally{
+    els.analyzeBtn.disabled = false;
+    els.analyzeBtn.textContent = '🔍 حلّل الآن';
+  }
+}
+
+let autoCandleTimeout = null;
+
+function scheduleNextCandleAnalysis(){
+  const mins = INTERVAL_MINUTES[els.intervalSelect.value] || 5;
+  const nextClose = getNextCandleClose(mins);
+  // نضيف 1.5 ثانية هامش أمان عشان نضمن مصدر البيانات حدّث الشمعة المقفلة فعلياً
+  const delay = Math.max(nextClose.getTime() - Date.now() + 1500, 1000);
+  autoCandleTimeout = setTimeout(async () => {
+    await analyzeNow();
+    if(autoTimer) scheduleNextCandleAnalysis();
+  }, delay);
+}
+
+function toggleAuto(){
+  if(autoTimer){
+    autoTimer = false;
+    if(autoCandleTimeout){ clearTimeout(autoCandleTimeout); autoCandleTimeout=null; }
+    els.autoBtn.textContent = '⏱ تحديث تلقائي: متوقف';
+    els.autoBtn.classList.remove('toggle-on');
+  } else {
+    if(mode==='paste'){ els.status.textContent='⚠️ التحديث التلقائي غير متاح في وضع اللصق'; return; }
+    autoTimer = true;
+    els.autoBtn.textContent = '⏱ تحديث تلقائي: يعمل (مع كل شمعة جديدة بالضبط)';
+    els.autoBtn.classList.add('toggle-on');
+    analyzeNow();
+    scheduleNextCandleAnalysis();
+  }
+}
+
+window.addEventListener('resize', ()=>{ if(candles.length){ const sig=generateSignal(candles); drawChart(candles, sig.support, sig.resistance);} });
+
+function getNextCandleClose(intervalMinutes){
+  const now = Date.now();
+  const ms = intervalMinutes*60000;
+  return new Date(Math.ceil(now/ms)*ms);
+}
+
+function tickCountdown(){
+  const mins = INTERVAL_MINUTES[els.intervalSelect.value] || 5;
+  const nextClose = getNextCandleClose(mins);
+  let remainingMs = nextClose.getTime() - Date.now();
+  if(remainingMs < 0) remainingMs = 0;
+  const totalSec = Math.floor(remainingMs/1000);
+  const mm = String(Math.floor(totalSec/60)).padStart(2,'0');
+  const ss = String(totalSec%60).padStart(2,'0');
+  const cd = document.getElementById('candleCountdown');
+  cd.textContent = `${mm}:${ss}`;
+  cd.style.color = totalSec<=5 ? 'var(--bull)' : 'var(--amber)';
+
+  const ageEl = document.getElementById('signalAge');
+  if(signalGeneratedAt && lastSignal && lastSignal.direction){
+    const ageSec = Math.floor((Date.now()-signalGeneratedAt.getTime())/1000);
+    let label, color;
+    if(ageSec<60){ label = `🕐 عمر الإشارة: ${ageSec} ثانية — طازة، ادخل الآن`; color='var(--bull)'; }
+    else if(ageSec<120){ label = `🕐 عمر الإشارة: ${Math.floor(ageSec/60)}د ${ageSec%60}ث — لسا مقبولة`; color='var(--amber)'; }
+    else { label = `⚠️ عمر الإشارة: ${Math.floor(ageSec/60)} دقيقة — قديمة، حدّث التحليل قبل الدخول`; color='var(--bear)'; }
+    ageEl.textContent = label;
+    ageEl.style.color = color;
+    ageEl.style.display = 'block';
+  } else {
+    ageEl.style.display = 'none';
+  }
+}
+
+els.intervalSelect.addEventListener('change', tickCountdown);
+setInterval(tickCountdown, 1000);
+tickCountdown();
+
+renderLog();
+</script>
+</body>
+</html>
